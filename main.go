@@ -8,9 +8,15 @@ import (
 	"strings"
 )
 
+type Process struct {
+	Pid int
+	Cmd string
+}
+
 type Server struct {
 	Server  string
 	Running bool
+	Cmd     string
 }
 
 const (
@@ -21,22 +27,27 @@ const (
 
 func systemDirectory(w http.ResponseWriter, r *http.Request) {
 	servers := []string{Zomboid, Minecraft, Valheim}
-	processes := make(map[string]string)
+	processes := make(map[string]Process, 0)
 
 	for _, server := range servers {
 		process, err := exec.Command("zsh", "-c", "ps -ao pid,cmd | tr -s ' ' | grep \""+server+"\" | grep -v \"grep\"").Output()
 		if err != nil {
 			log.Fatal(err)
 		}
-		processes[server] = string(process)
+
+		// TODO split the string to get pid + cmd
+		processes[server] = Process{
+			000, string(process),
+		}
 	}
 
 	response := make([]Server, 0)
 	for server, process := range processes {
-		if strings.Contains(process, "-servername") {
+		if strings.Contains(process.Cmd, "-servername") {
 			response = append(response, Server{
 				Server:  server,
 				Running: true,
+				Cmd:     process.Cmd,
 			})
 		}
 	}
