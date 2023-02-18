@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os/exec"
@@ -30,9 +32,14 @@ func systemDirectory(w http.ResponseWriter, _ *http.Request) {
 	processes := make(map[string]Process, 0)
 
 	for _, server := range servers {
-		process, err := exec.Command("bash", "-c", "ps -ao pid,comm,args | tr -s ' ' | grep \""+server+"\" | grep -v \"grep\"").Output()
+		psCommand := "-c ps -ao pid,cmd | tr -s ' ' | grep \"" + server + "\" | grep -v \"grep\""
+		cmd := exec.Command("bash", strings.Fields(psCommand)...)
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
+		process, err := cmd.Output()
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
+			return
 		}
 
 		// TODO split the string to get pid + cmd
