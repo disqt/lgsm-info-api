@@ -1,4 +1,4 @@
-package process
+package gameServers
 
 import (
 	"fmt"
@@ -44,7 +44,7 @@ func getRunningProcessByName(name string) (Process, error) {
 	}
 }
 
-func GetRunningServers() map[string]Server {
+func GetRunningGameServers() map[string]Server {
 	serverNames := []string{Zomboid, Minecraft, Valheim}
 	res := make(map[string]Server, len(serverNames))
 
