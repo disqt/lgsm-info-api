@@ -5,24 +5,47 @@ import (
 	"log"
 	"net/http"
 	"os/exec"
+	"strings"
 )
 
-type SystemDirectory struct {
-	Process string
+type Server struct {
+	Server  string
+	Running bool
 }
 
+const (
+	Zomboid   string = "Zomboid"
+	Minecraft        = "Minecraft"
+	Valheim          = "Valheim"
+)
+
 func systemDirectory(w http.ResponseWriter, r *http.Request) {
-	process, err := exec.Command("zsh", "-c", "ps aux | head -1; ps aux | grep ProjectZomboid64| sort -rnk 4 | more").Output()
-	if err != nil {
-		log.Fatal(err)
+	servers := []string{Zomboid, Minecraft, Valheim}
+	processes := make(map[string]string)
+
+	for _, server := range servers {
+		process, err := exec.Command("zsh", "-c", "ps -ef | grep \""+server+"\"").Output()
+		if err != nil {
+			log.Fatal(err)
+		}
+		processes[server] = string(process)
+	}
+
+	response := make([]Server, 0)
+	for server, process := range processes {
+		if !strings.Contains(process, "grep") {
+			response = append(response, Server{
+				Server:  server,
+				Running: true,
+			})
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
-	err = json.NewEncoder(w).Encode(SystemDirectory{Process: string(process)})
+	err := json.NewEncoder(w).Encode(response)
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
 }
 
