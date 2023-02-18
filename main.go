@@ -1,24 +1,17 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os/exec"
-	"strings"
 )
-
-type Process struct {
-	Pid int
-	Cmd string
-}
 
 type Server struct {
 	Server  string
 	Running bool
-	Cmd     string
+	Pid     string
 }
 
 const (
@@ -28,40 +21,33 @@ const (
 )
 
 func systemDirectory(w http.ResponseWriter, _ *http.Request) {
-	servers := []string{Zomboid, Minecraft, Valheim}
-	processes := make(map[string]Process, 0)
+	serverNames := []string{Zomboid, Minecraft, Valheim}
+	res := make(map[string]Server, len(serverNames))
 
-	for _, server := range servers {
-		psCommand := "-c ps -ao pid,cmd | tr -s ' ' | grep \"" + server + "\" | grep -v \"grep\""
-		cmd := exec.Command("bash", strings.Fields(psCommand)...)
-		var stderr bytes.Buffer
-		cmd.Stderr = &stderr
-		process, err := cmd.Output()
+	for _, serverName := range serverNames {
+		regex := fmt.Sprintf("%s.*servername|servername.*%s", serverName, serverName)
+		cmd := exec.Command("bash", "-c", fmt.Sprintf("pgrep -f '%s'", regex))
+		fmt.Println(cmd.String())
+		out, err := cmd.CombinedOutput()
 		if err != nil {
-			fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
-			return
-		}
-
-		// TODO split the string to get pid + cmd
-		processes[server] = Process{
-			000, string(process),
-		}
-	}
-
-	response := make([]Server, 0)
-	for server, process := range processes {
-		if strings.Contains(process.Cmd, "-servername") {
-			response = append(response, Server{
-				Server:  server,
+			fmt.Println(fmt.Sprint(err) + ": " + string(out))
+			res[serverName] = Server{
+				Server:  serverName,
+				Running: false,
+				Pid:     "",
+			}
+		} else {
+			res[serverName] = Server{
+				Server:  serverName,
 				Running: true,
-				Cmd:     process.Cmd,
-			})
+				Pid:     string(out),
+			}
 		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(response)
+	err := json.NewEncoder(w).Encode(res)
 	if err != nil {
 		return
 	}
@@ -69,6 +55,7 @@ func systemDirectory(w http.ResponseWriter, _ *http.Request) {
 
 func main() {
 	http.HandleFunc("/", systemDirectory)
+	fmt.Println("Starting server on port 8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatal(err)
