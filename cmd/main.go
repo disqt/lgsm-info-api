@@ -11,6 +11,7 @@ func getGameServers(w http.ResponseWriter, _ *http.Request) {
 	servers := gameServers.GetRunningGameServers()
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(servers)
 	if err != nil {
