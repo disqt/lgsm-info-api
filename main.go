@@ -24,7 +24,7 @@ func systemDirectory(w http.ResponseWriter, r *http.Request) {
 	processes := make(map[string]string)
 
 	for _, server := range servers {
-		process, err := exec.Command("zsh", "-c", "ps -ef | grep \""+server+"\"").Output()
+		process, err := exec.Command("zsh", "-c", "ps -ao pid,cmd | tr -s ' ' | grep \""+server+"\" | grep -v \"grep\"").Output()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -33,7 +33,7 @@ func systemDirectory(w http.ResponseWriter, r *http.Request) {
 
 	response := make([]Server, 0)
 	for server, process := range processes {
-		if !strings.Contains(process, "grep") {
+		if strings.Contains(process, "-servername") {
 			response = append(response, Server{
 				Server:  server,
 				Running: true,
