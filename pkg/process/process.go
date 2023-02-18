@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"strings"
 )
 
 type Process struct {
@@ -32,9 +33,13 @@ func getRunningProcessByName(name string) (Process, error) {
 			Out: string(out),
 		}, err
 	} else {
+		// Split the output by new line and get the first result
+		process := strings.Split(string(out), "\n")[0]
+		// split the output by space
+		col := strings.Split(process, " ")
 		return Process{
-			Pid: string(out),
-			Out: string(out),
+			Pid: col[0],
+			Out: process,
 		}, nil
 	}
 }
