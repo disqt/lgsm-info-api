@@ -25,12 +25,12 @@ const (
 	Valheim          = "Valheim"
 )
 
-func systemDirectory(w http.ResponseWriter, r *http.Request) {
+func systemDirectory(w http.ResponseWriter, _ *http.Request) {
 	servers := []string{Zomboid, Minecraft, Valheim}
 	processes := make(map[string]Process, 0)
 
 	for _, server := range servers {
-		process, err := exec.Command("bash", "-c", "ps -ao pid,cmd | tr -s ' ' | grep \""+server+"\" | grep -v \"grep\"").Output()
+		process, err := exec.Command("bash", "-c", "ps -ao pid,comm,args | tr -s ' ' | grep \""+server+"\" | grep -v \"grep\"").Output()
 		if err != nil {
 			log.Fatal(err)
 		}
