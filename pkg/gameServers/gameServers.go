@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type Process struct {
+type process struct {
 	Pid string
 	Out string
 }
@@ -17,40 +17,38 @@ type Server struct {
 	Pid     string
 }
 
-const (
-	Zomboid   string = "Zomboid"
-	Minecraft        = "Minecraft"
-	Valheim          = "Valheim"
-)
+var servers = map[string]string{
+	"Zomboid":   "Zomboid.*servername|servername.Zomboid",
+	"Minecraft": "minecraft",
+	"Valheim":   "valheim",
+}
 
-func getRunningProcessByName(name string) (Process, error) {
+func getRunningProcessByRegex(name string) (process, error) {
 	cmd := exec.Command("bash", "-c", fmt.Sprintf("pgrep -f '%s'", name))
 	log.Default().Println("Running command: " + cmd.String())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		// Return an error
-		return Process{
+		return process{
 			Out: string(out),
 		}, err
 	} else {
 		// Split the output by new line and get the first result
-		process := strings.Split(string(out), "\n")[0]
+		p := strings.Split(string(out), "\n")[0]
 		// split the output by space
-		col := strings.Split(process, " ")
-		return Process{
+		col := strings.Split(p, " ")
+		return process{
 			Pid: col[0],
-			Out: process,
+			Out: p,
 		}, nil
 	}
 }
 
 func GetRunningGameServers() map[string]Server {
-	serverNames := []string{Zomboid, Minecraft, Valheim}
-	res := make(map[string]Server, len(serverNames))
+	res := make(map[string]Server, len(servers))
 
-	for _, serverName := range serverNames {
-		regex := fmt.Sprintf("%s.*servername|servername.*%s", serverName, serverName)
-		out, err := getRunningProcessByName(regex)
+	for serverName, regex := range servers {
+		out, err := getRunningProcessByRegex(regex)
 		if err != nil {
 			log.Default().Println(fmt.Sprint(err) + ": " + out.Out)
 			res[serverName] = Server{
