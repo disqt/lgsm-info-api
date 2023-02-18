@@ -19,7 +19,7 @@ type Server struct {
 
 var servers = map[string]string{
 	"Zomboid":   "Zomboid.*servername|servername.Zomboid",
-	"Minecraft": "minecraft",
+	"Minecraft": "java -Xms2560M",
 	"Valheim":   "valheim",
 }
 
