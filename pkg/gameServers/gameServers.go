@@ -20,7 +20,7 @@ type Server struct {
 var servers = map[string]string{
 	"Zomboid":   "Zomboid.*servername|servername.Zomboid",
 	"Minecraft": "java -Xms2560M",
-	"Valheim":   "valheim",
+	"Valheim":   "Valheim.*servername|servername.Valheim",
 }
 
 func getRunningProcessByRegex(name string) (process, error) {
