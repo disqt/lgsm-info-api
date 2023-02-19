@@ -12,19 +12,33 @@ type process struct {
 	Out string
 }
 
+type server struct {
+	Url   string
+	Regex string
+}
+
+var servers = map[string]server{
+	"Zomboid": {
+		Url:   "http://disqt.com:16261/",
+		Regex: "Zomboid.*servername|servername.Zomboid",
+	},
+	"Minecraft": {
+		Url:   "http://disqt.com/",
+		Regex: "java -Xms2560M",
+	},
+	"Valheim": {
+		Url:   "http://disqt.com:2456/",
+		Regex: "Valheim.*servername|servername.Valheim",
+	},
+}
+
 type Server struct {
 	Running bool
-	Pid     string
+	Url     string
 }
 
-var servers = map[string]string{
-	"Zomboid":   "Zomboid.*servername|servername.Zomboid",
-	"Minecraft": "java -Xms2560M",
-	"Valheim":   "Valheim.*servername|servername.Valheim",
-}
-
-func getRunningProcessByRegex(name string) (process, error) {
-	cmd := exec.Command("bash", "-c", fmt.Sprintf("pgrep -f '%s'", name))
+func getRunningProcessByRegex(regex string) (process, error) {
+	cmd := exec.Command("bash", "-c", fmt.Sprintf("pgrep -f '%s'", regex))
 	log.Default().Println("Running command: " + cmd.String())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -47,18 +61,19 @@ func getRunningProcessByRegex(name string) (process, error) {
 func GetRunningGameServers() map[string]Server {
 	res := make(map[string]Server, len(servers))
 
-	for serverName, regex := range servers {
-		out, err := getRunningProcessByRegex(regex)
+	for serverName, server := range servers {
+		out, err := getRunningProcessByRegex(server.Regex)
 		if err != nil {
 			log.Default().Println(fmt.Sprint(err) + ": " + out.Out)
 			res[serverName] = Server{
 				Running: false,
-				Pid:     "",
+				Url:     server.Url,
 			}
 		} else {
+			// Here, we can use out.Pid to fetch more information about that process
 			res[serverName] = Server{
 				Running: true,
-				Pid:     out.Pid,
+				Url:     server.Url,
 			}
 		}
 	}
