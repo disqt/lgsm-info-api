@@ -24,7 +24,7 @@ var servers = map[string]server{
 	},
 	"Minecraft": {
 		Url:   "http://disqt.com/",
-		Regex: "java -Xms2560M",
+		Regex: "java -Xms2048M",
 	},
 	"Valheim": {
 		Url:   "http://disqt.com:2456/",
