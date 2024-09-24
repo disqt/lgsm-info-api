@@ -10,6 +10,7 @@ import (
 
 var serverLookups = map[string]string{
 	"minecraft": "disqt.com",
+	"valheim":   "disqt.com",
 }
 
 // GetGameServers Run command, if error then add an OfflineServer to response
