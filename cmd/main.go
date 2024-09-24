@@ -1,29 +1,21 @@
 package main
 
 import (
-	"encoding/json"
+	"github.com/gin-gonic/gin"
 	"lgsm-info-api/pkg/gameServers"
-	"log"
-	"net/http"
 )
 
-func getGameServers(w http.ResponseWriter, _ *http.Request) {
-	servers := gameServers.GetRunningGameServers()
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(servers)
-	if err != nil {
-		return
-	}
+func getGameServers(c *gin.Context) {
+	c.IndentedJSON(200, gameServers.GetGameServers())
 }
 
 func main() {
-	http.HandleFunc("/servers", getGameServers)
-	log.Default().Println("Starting server on port 8080")
-	err := http.ListenAndServe(":8080", nil)
+	router := gin.Default()
+	router.GET("/servers", getGameServers)
+
+	err := router.Run("localhost:8080")
 	if err != nil {
-		log.Fatal(err)
+		// Print error
+		println(err)
 	}
 }
