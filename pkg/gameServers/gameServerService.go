@@ -3,9 +3,9 @@ package gameServers
 import (
 	"encoding/json"
 	"fmt"
+	"lgsm-info-api/pkg/gameServers/client"
 	"lgsm-info-api/pkg/gameServers/model"
 	"log"
-	"os/exec"
 )
 
 var serverLookups = map[string]string{
@@ -16,13 +16,11 @@ var serverLookups = map[string]string{
 // GetGameServers Run command, if error then add an OfflineServer to response
 // If successful, add an OnlineServer
 // Also append extras if present
-func GetGameServers() ([]model.GameServer, error) {
+func GetGameServers(gameDigClient client.GameDigClient) ([]model.GameServer, error) {
 	var servers []model.GameServer
 
 	for game, host := range serverLookups {
-		cmd := exec.Command("gamedig", "--type", game, host)
-
-		output, err := cmd.Output()
+		output, err := gameDigClient.GetServerInfo(game, host)
 		if err != nil {
 			log.Fatalf("Error executing command: %s", err)
 			return nil, err
@@ -30,14 +28,11 @@ func GetGameServers() ([]model.GameServer, error) {
 
 		fmt.Println("Raw JSON Output:", string(output))
 
-		// Check if server is online or if gamedig returned an error
-		var errorResponse struct {
-			Error string `json:"error"`
-		}
-
-		if err := json.Unmarshal(output, &errorResponse); err == nil {
-			servers = append(servers, model.OfflineGameServer{Name: game, IsOnline: false})
+		if isError(output) {
+			// if err exists, then the server is offline
+			servers = append(servers, model.NewOfflineGameServer(game))
 		} else {
+			// if err does not exist, then the server is online
 			var response model.GameDigResponse
 			err = json.Unmarshal(output, &response)
 
@@ -46,9 +41,24 @@ func GetGameServers() ([]model.GameServer, error) {
 				return nil, err
 			}
 
-			servers = append(servers, model.OnlineGameServer{Name: game, Host: host, Port: response.Port, Players: response.Players, MaxPlayers: response.MaxPlayers, IsOnline: true})
+			servers = append(servers, model.NewOnlineGameServer(game, host, string(response.Port), response.Players, response.MaxPlayers))
 		}
 	}
 
 	return servers, nil
+}
+
+func isError(output []byte) bool {
+	// Check if server is online or if gamedig returned an error
+	var result map[string]interface{}
+	err := json.Unmarshal(output, &result)
+	if err != nil {
+		log.Fatalf("Error unmarshaling JSON: %v", err)
+	}
+
+	if _, ok := result["error"]; ok {
+		return true
+	} else {
+		return false
+	}
 }
