@@ -6,7 +6,7 @@ type GameDigResponse struct {
 	Game       string
 	Players    int    `json:"numplayers"`
 	MaxPlayers int    `json:"maxplayers"`
-	Port       string `json:"port"`
+	Port       string `json:"queryPort"`
 }
 
 type GameServer interface {
@@ -21,6 +21,7 @@ type OnlineGameServer struct {
 	IsOnline   bool
 	Players    int
 	MaxPlayers int
+	Redirect   string
 }
 
 func (gameServer OnlineGameServer) GetIsOnline() bool {

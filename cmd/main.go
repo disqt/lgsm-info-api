@@ -3,10 +3,16 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"lgsm-info-api/pkg/gameServers"
+	"log"
 )
 
 func getGameServers(c *gin.Context) {
-	c.IndentedJSON(200, gameServers.GetGameServers())
+	servers, err := gameServers.GetGameServers()
+	if err != nil {
+		c.IndentedJSON(500, gin.H{"error": err.Error()})
+	} else {
+		c.IndentedJSON(200, servers)
+	}
 }
 
 func main() {
@@ -14,8 +20,9 @@ func main() {
 	router.GET("/servers", getGameServers)
 
 	err := router.Run("localhost:8080")
+
 	if err != nil {
 		// Print error
-		println(err)
+		log.Fatalf("Error running gin server: %s", err)
 	}
 }
