@@ -9,7 +9,7 @@ It's an HTTP API making use of [Gin](https://github.com/gin-gonic/gin).
 You can build the app by running:
 
 ```bash
-go build
+go build ./cmd/main.go
 ```
 
 ## Running
