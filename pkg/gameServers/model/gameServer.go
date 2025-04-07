@@ -34,6 +34,10 @@ func NewOnlineGameServer(name string, host string, port string, players int, max
 		redirect = "https://disqt.com/map/"
 	}
 
+	if strings.ToLower(name) == "xonotic" {
+		redirect = "https://stats.xonotic.org/server/46827"
+	}
+
 	name = strings.ToUpper(string(name[0])) + name[1:]
 
 	return OnlineGameServer{

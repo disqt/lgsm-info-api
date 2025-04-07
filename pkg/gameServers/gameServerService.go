@@ -8,9 +8,28 @@ import (
 	"log"
 )
 
-var serverLookups = map[string]string{
-	"minecraft": "disqt.com",
-	"valheim":   "disqt.com",
+type ServerLookup struct {
+	Id   string
+	Host string
+	Port string
+}
+
+var serverLookups = [...]ServerLookup{
+	{
+		Id:   "minecraft",
+		Host: "disqt.com",
+		Port: "",
+	},
+	{
+		Id:   "valheim",
+		Host: "disqt.com",
+		Port: "",
+	},
+	{
+		Id:   "xonotic",
+		Host: "disqt.com",
+		Port: "26420",
+	},
 }
 
 // GetGameServers Run command, if error then add an OfflineServer to response
@@ -19,8 +38,12 @@ var serverLookups = map[string]string{
 func GetGameServers(gameDigClient client.GameDigClient) ([]model.GameServer, error) {
 	var servers []model.GameServer
 
-	for game, host := range serverLookups {
-		output, err := gameDigClient.GetServerInfo(game, host)
+	for _, lookup := range serverLookups {
+		game := lookup.Id
+		host := lookup.Host
+		port := lookup.Port
+
+		output, err := gameDigClient.GetServerInfo(game, host, port)
 		if err != nil {
 			log.Fatalf("Error executing command: %s", err)
 			return nil, err

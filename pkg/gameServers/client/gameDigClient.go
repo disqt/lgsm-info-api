@@ -3,7 +3,7 @@ package client
 import "os/exec"
 
 type GameDigClient struct {
-	GetServerInfo func(game string, host string) ([]byte, error)
+	GetServerInfo func(game string, host string, port string) ([]byte, error)
 }
 
 func NewGameDigClient() GameDigClient {
@@ -12,8 +12,14 @@ func NewGameDigClient() GameDigClient {
 	}
 }
 
-func ExecGameDigCommand(game string, host string) ([]byte, error) {
-	cmd := exec.Command("gamedig", "--type", game, host)
+func ExecGameDigCommand(game string, host string, port string) ([]byte, error) {
+	args := []string{"--type", game, host}
+
+	if port != "" {
+		args = append(args, "--port", port)
+	}
+
+	cmd := exec.Command("gamedig", args...)
 
 	return cmd.Output()
 }
