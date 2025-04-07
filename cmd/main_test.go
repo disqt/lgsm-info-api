@@ -28,7 +28,7 @@ func TestGetServersHandler(t *testing.T) {
 		// Set up mock behavior
 		gameDigClientMock.On("GetServerInfo", "minecraft", "disqt.com", "").Return([]byte(`{"maxplayers":420,"numplayers":0,"queryPort": 25565}`), nil)
 		gameDigClientMock.On("GetServerInfo", "valheim", "disqt.com", "").Return([]byte(`{"error":"Failed all 1 attempts"}`), nil)
-		gameDigClientMock.On("GetServerInfo", "xonotic", "disqt.com", "26420").Return([]byte(`{"maxplayers":420,"numplayers":0,"queryPort": 26420}`), nil)
+		gameDigClientMock.On("GetServerInfo", "xonotic", "disqt.com", "26420").Return([]byte(`{"maxplayers":"420","numplayers":0,"queryPort": 26420}`), nil)
 
 		// Inject mock into the router
 		gameDigClient := client.GameDigClient{

@@ -7,8 +7,8 @@ import (
 
 type GameDigResponse struct {
 	Game       string
-	Players    int         `json:"numplayers"`
-	MaxPlayers int         `json:"maxplayers"`
+	Players    json.Number `json:"numplayers"`
+	MaxPlayers json.Number `json:"maxplayers"`
 	Port       json.Number `json:"queryPort"`
 }
 

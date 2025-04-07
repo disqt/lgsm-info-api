@@ -64,7 +64,17 @@ func GetGameServers(gameDigClient client.GameDigClient) ([]model.GameServer, err
 				return nil, err
 			}
 
-			servers = append(servers, model.NewOnlineGameServer(game, host, string(response.Port), response.Players, response.MaxPlayers))
+			currentPlayer, err := response.Players.Int64()
+			if err != nil {
+				log.Println("Error getting current player")
+				currentPlayer = 0
+			}
+			maxPlayers, err := response.MaxPlayers.Int64()
+			if err != nil {
+				log.Println("Error getting max players")
+				maxPlayers = 0
+			}
+			servers = append(servers, model.NewOnlineGameServer(game, host, string(response.Port), int(currentPlayer), int(maxPlayers)))
 		}
 	}
 
