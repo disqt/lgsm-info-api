@@ -30,6 +30,11 @@ var serverLookups = [...]ServerLookup{
 		Host: "disqt.com",
 		Port: "26420",
 	},
+	{
+		Id:   "csgo",
+		Host: "disqt.com",
+		Port: "27015",
+	},
 }
 
 // GetGameServers Run command, if error then add an OfflineServer to response

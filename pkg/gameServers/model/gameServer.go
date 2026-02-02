@@ -38,7 +38,11 @@ func NewOnlineGameServer(name string, host string, port string, players int, max
 		redirect = "https://stats.xonotic.org/server/46827"
 	}
 
-	name = strings.ToUpper(string(name[0])) + name[1:]
+	if strings.ToLower(name) == "csgo" {
+		name = "Counter Strike 2"
+	} else {
+		name = strings.ToUpper(string(name[0])) + name[1:]
+	}
 
 	return OnlineGameServer{
 		IsOnline:   true,
@@ -85,7 +89,11 @@ type OfflineGameServer struct {
 }
 
 func NewOfflineGameServer(name string) OfflineGameServer {
-	name = strings.ToUpper(string(name[0])) + name[1:]
+	if strings.ToLower(name) == "csgo" {
+		name = "Counter Strike 2"
+	} else {
+		name = strings.ToUpper(string(name[0])) + name[1:]
+	}
 	return OfflineGameServer{
 		Name:     name,
 		IsOnline: false,
