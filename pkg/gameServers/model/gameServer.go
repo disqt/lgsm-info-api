@@ -40,7 +40,7 @@ func NewOnlineGameServer(name string, host string, port string, players int, max
 
 	if strings.ToLower(name) == "csgo" {
 		name = "Counter Strike 2"
-		redirect = "steam://connect/" + host + ":27015"
+		redirect = "steam://rungameid/730//+connect " + host + ":27015"
 		port = ""
 	} else {
 		name = strings.ToUpper(string(name[0])) + name[1:]
