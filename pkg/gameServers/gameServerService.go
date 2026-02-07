@@ -6,6 +6,7 @@ import (
 	"lgsm-info-api/pkg/gameServers/client"
 	"lgsm-info-api/pkg/gameServers/model"
 	"log"
+	"sync"
 )
 
 type ServerLookup struct {
@@ -15,88 +16,81 @@ type ServerLookup struct {
 }
 
 var serverLookups = [...]ServerLookup{
-	{
-		Id:   "minecraft",
-		Host: "disqt.com",
-		Port: "",
-	},
-	{
-		Id:   "valheim",
-		Host: "disqt.com",
-		Port: "",
-	},
-	{
-		Id:   "xonotic",
-		Host: "disqt.com",
-		Port: "26420",
-	},
-	{
-		Id:   "csgo",
-		Host: "disqt.com",
-		Port: "27015",
-	},
+	{Id: "minecraft", Host: "disqt.com", Port: ""},
+	{Id: "valheim", Host: "disqt.com", Port: ""},
+	{Id: "xonotic", Host: "disqt.com", Port: "26420"},
+	{Id: "csgo", Host: "disqt.com", Port: "27015"},
 }
 
-// GetGameServers Run command, if error then add an OfflineServer to response
-// If successful, add an OnlineServer
-// Also append extras if present
+// GetGameServers queries all game servers concurrently via gamedig.
+// If a server query fails, it is reported as offline rather than crashing the API.
 func GetGameServers(gameDigClient client.GameDigClient) ([]model.GameServer, error) {
+	type result struct {
+		server model.GameServer
+		err    error
+	}
+
+	results := make([]result, len(serverLookups))
+	var wg sync.WaitGroup
+
+	for i, lookup := range serverLookups {
+		wg.Add(1)
+		go func(i int, lookup ServerLookup) {
+			defer wg.Done()
+
+			output, err := gameDigClient.GetServerInfo(lookup.Id, lookup.Host, lookup.Port)
+			if err != nil {
+				log.Printf("Error querying %s: %s", lookup.Id, err)
+				results[i] = result{server: model.NewOfflineGameServer(lookup.Id)}
+				return
+			}
+
+			fmt.Println("Raw JSON Output:", string(output))
+
+			if isError(output) {
+				results[i] = result{server: model.NewOfflineGameServer(lookup.Id)}
+			} else {
+				var response model.GameDigResponse
+				err = json.Unmarshal(output, &response)
+				if err != nil {
+					log.Printf("Error unmarshalling JSON for %s: %s", lookup.Id, err)
+					results[i] = result{server: model.NewOfflineGameServer(lookup.Id)}
+					return
+				}
+
+				currentPlayer, err := response.Players.Int64()
+				if err != nil {
+					log.Println("Error getting current player")
+					currentPlayer = 0
+				}
+				maxPlayers, err := response.MaxPlayers.Int64()
+				if err != nil {
+					log.Println("Error getting max players")
+					maxPlayers = 0
+				}
+				results[i] = result{server: model.NewOnlineGameServer(lookup.Id, lookup.Host, string(response.Port), int(currentPlayer), int(maxPlayers))}
+			}
+		}(i, lookup)
+	}
+
+	wg.Wait()
+
 	var servers []model.GameServer
-
-	for _, lookup := range serverLookups {
-		game := lookup.Id
-		host := lookup.Host
-		port := lookup.Port
-
-		output, err := gameDigClient.GetServerInfo(game, host, port)
-		if err != nil {
-			log.Fatalf("Error executing command: %s", err)
-			return nil, err
-		}
-
-		fmt.Println("Raw JSON Output:", string(output))
-
-		if isError(output) {
-			// if err exists, then the server is offline
-			servers = append(servers, model.NewOfflineGameServer(game))
-		} else {
-			// if err does not exist, then the server is online
-			var response model.GameDigResponse
-			err = json.Unmarshal(output, &response)
-
-			if err != nil {
-				log.Fatalf("Error unmarshalling JSON: %s", err)
-				return nil, err
-			}
-
-			currentPlayer, err := response.Players.Int64()
-			if err != nil {
-				log.Println("Error getting current player")
-				currentPlayer = 0
-			}
-			maxPlayers, err := response.MaxPlayers.Int64()
-			if err != nil {
-				log.Println("Error getting max players")
-				maxPlayers = 0
-			}
-			servers = append(servers, model.NewOnlineGameServer(game, host, string(response.Port), int(currentPlayer), int(maxPlayers)))
-		}
+	for _, r := range results {
+		servers = append(servers, r.server)
 	}
 
 	return servers, nil
 }
 
 func isError(output []byte) bool {
-	// Check if server is online or if gamedig returned an error
 	var result map[string]interface{}
 	err := json.Unmarshal(output, &result)
 	if err != nil {
-		log.Fatalf("Error unmarshaling JSON: %v", err)
+		log.Printf("Error unmarshaling JSON: %v", err)
+		return true
 	}
 
-	if _, ok := result["error"]; ok {
-		return true
-	} else {
-		return false
-	}
+	_, ok := result["error"]
+	return ok
 }
