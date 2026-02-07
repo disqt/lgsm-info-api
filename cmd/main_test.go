@@ -4,10 +4,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"lgsm-info-api/pkg/gameServers"
 	"lgsm-info-api/pkg/gameServers/client"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 type MockedGameDigClient struct {
@@ -22,33 +24,30 @@ func (m *MockedGameDigClient) GetServerInfo(game string, host string, port strin
 func TestGetServersHandler(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	t.Run("Minecraft On, Valheim Off", func(t *testing.T) {
+	t.Run("Minecraft On, Valheim Off, Xonotic On, CS2 On", func(t *testing.T) {
 		gameDigClientMock := new(MockedGameDigClient)
 
-		// Set up mock behavior
 		gameDigClientMock.On("GetServerInfo", "minecraft", "disqt.com", "").Return([]byte(`{"maxplayers":420,"numplayers":0,"queryPort": 25565}`), nil)
 		gameDigClientMock.On("GetServerInfo", "valheim", "disqt.com", "").Return([]byte(`{"error":"Failed all 1 attempts"}`), nil)
 		gameDigClientMock.On("GetServerInfo", "xonotic", "disqt.com", "26420").Return([]byte(`{"maxplayers":"420","numplayers":0,"queryPort": 26420}`), nil)
+		gameDigClientMock.On("GetServerInfo", "csgo", "disqt.com", "27015").Return([]byte(`{"maxplayers":10,"numplayers":3,"queryPort": 27015}`), nil)
 
-		// Inject mock into the router
 		gameDigClient := client.GameDigClient{
 			GetServerInfo: gameDigClientMock.GetServerInfo,
 		}
-		r := setupRouter(gameDigClient)
+
+		cache := gameServers.NewServerCache(gameDigClient, 1*time.Hour)
+		cache.Start()
+
+		r := setupRouter(cache)
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/servers", nil)
 		r.ServeHTTP(w, req)
 
-		// Assert the result
-		if w.Code != http.StatusOK {
-			t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
-		}
-
-		// Assert that the mock was called
+		assert.Equal(t, http.StatusOK, w.Code)
 		gameDigClientMock.AssertExpectations(t)
 
-		// Assert that the body matches
 		expectedBody := `{
 			"Minecraft": {
 				"Url": "disqt.com",
@@ -65,8 +64,15 @@ func TestGetServersHandler(t *testing.T) {
 				"Url": "disqt.com:26420",
 				"Running": true,
 				"Players": 0,
-				"MaxPlayers": 420,	
+				"MaxPlayers": 420,
 				"Redirect": "https://stats.xonotic.org/server/46827"
+			},
+			"Counter Strike 2": {
+				"Url": "disqt.com",
+				"Running": true,
+				"Players": 3,
+				"MaxPlayers": 10,
+				"Redirect": "steam://rungameid/730//+connect disqt.com:27015"
 			}
 		}`
 		assert.JSONEq(t, expectedBody, w.Body.String())
