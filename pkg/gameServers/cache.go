@@ -10,7 +10,7 @@ import (
 
 type ServerCache struct {
 	mu       sync.RWMutex
-	response map[string]model.ServerResponse
+	response model.OrderedServerMap
 	client   client.GameDigClient
 	interval time.Duration
 }
@@ -22,7 +22,7 @@ func NewServerCache(gameDigClient client.GameDigClient, interval time.Duration) 
 	}
 }
 
-func (c *ServerCache) Get() map[string]model.ServerResponse {
+func (c *ServerCache) Get() model.OrderedServerMap {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.response
