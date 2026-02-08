@@ -49,16 +49,19 @@ func TestGetServersHandler(t *testing.T) {
 		gameDigClientMock.AssertExpectations(t)
 
 		expectedBody := `{
+			"Counter Strike 2": {
+				"Url": "disqt.com",
+				"Running": true,
+				"Players": 3,
+				"MaxPlayers": 10,
+				"Redirect": "steam://rungameid/730//+connect disqt.com:27015"
+			},
 			"Minecraft": {
 				"Url": "disqt.com",
 				"Running": true,
 				"Players": 0,
 				"MaxPlayers": 420,
 				"Redirect": "https://disqt.com/map/"
-			},
-			"Valheim": {
-				"Url": "",
-				"Running": false
 			},
 			"Xonotic": {
 				"Url": "disqt.com:26420",
@@ -67,12 +70,9 @@ func TestGetServersHandler(t *testing.T) {
 				"MaxPlayers": 420,
 				"Redirect": "https://stats.xonotic.org/server/46827"
 			},
-			"Counter Strike 2": {
-				"Url": "disqt.com",
-				"Running": true,
-				"Players": 3,
-				"MaxPlayers": 10,
-				"Redirect": "steam://rungameid/730//+connect disqt.com:27015"
+			"Valheim": {
+				"Url": "",
+				"Running": false
 			}
 		}`
 		assert.JSONEq(t, expectedBody, w.Body.String())
