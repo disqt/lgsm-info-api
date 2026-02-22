@@ -7,9 +7,10 @@ import (
 
 type GameDigResponse struct {
 	Game       string
-	Players    json.Number `json:"numplayers"`
-	MaxPlayers json.Number `json:"maxplayers"`
-	Port       json.Number `json:"queryPort"`
+	NumPlayers json.Number       `json:"numplayers"`
+	MaxPlayers json.Number       `json:"maxplayers"`
+	Port       json.Number       `json:"queryPort"`
+	Players    []json.RawMessage `json:"players"`
 }
 
 type GameServer interface {

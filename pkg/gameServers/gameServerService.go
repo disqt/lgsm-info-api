@@ -58,17 +58,13 @@ func GetGameServers(gameDigClient client.GameDigClient) ([]model.GameServer, err
 					return
 				}
 
-				currentPlayer, err := response.Players.Int64()
-				if err != nil {
-					log.Println("Error getting current player")
-					currentPlayer = 0
-				}
+				currentPlayer := len(response.Players)
 				maxPlayers, err := response.MaxPlayers.Int64()
 				if err != nil {
 					log.Println("Error getting max players")
 					maxPlayers = 0
 				}
-				results[i] = result{server: model.NewOnlineGameServer(lookup.Id, lookup.Host, string(response.Port), int(currentPlayer), int(maxPlayers))}
+				results[i] = result{server: model.NewOnlineGameServer(lookup.Id, lookup.Host, string(response.Port), currentPlayer, int(maxPlayers))}
 			}
 		}(i, lookup)
 	}
