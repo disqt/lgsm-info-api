@@ -61,7 +61,7 @@ func TestGetServersHandler(t *testing.T) {
 				"Running": true,
 				"Players": 0,
 				"MaxPlayers": 420,
-				"Redirect": "https://disqt.com/map/"
+				"Redirect": "https://disqt.com/minecraft"
 			},
 			"Xonotic": {
 				"Url": "disqt.com:26420",
