@@ -20,6 +20,7 @@ type OnlineServerResponse struct {
 	Redirect   string
 	Players    int
 	MaxPlayers int
+	Motd       string `json:",omitempty"`
 }
 
 func (o OnlineServerResponse) GetRunning() bool {
@@ -92,6 +93,7 @@ func NewResponse(servers []model.GameServer) (OrderedServerMap, error) {
 					Redirect:   v.GetRedirect(),
 					Players:    v.GetPlayers(),
 					MaxPlayers: v.GetMaxPlayers(),
+					Motd:       v.GetMotd(),
 				},
 			})
 		case model.OfflineGameServer:

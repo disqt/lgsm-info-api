@@ -7,6 +7,7 @@ import (
 
 type GameDigResponse struct {
 	Game       string
+	Name       string            `json:"name"`
 	NumPlayers json.Number       `json:"numplayers"`
 	MaxPlayers json.Number       `json:"maxplayers"`
 	Port       json.Number       `json:"queryPort"`
@@ -26,9 +27,10 @@ type OnlineGameServer struct {
 	Players    int
 	MaxPlayers int
 	Redirect   string
+	Motd       string
 }
 
-func NewOnlineGameServer(name string, host string, port string, players int, maxPlayers int) OnlineGameServer {
+func NewOnlineGameServer(name string, host string, port string, players int, maxPlayers int, motd string) OnlineGameServer {
 	redirect := ""
 	if strings.ToLower(name) == "minecraft" {
 		port = ""
@@ -55,6 +57,7 @@ func NewOnlineGameServer(name string, host string, port string, players int, max
 		Players:    players,
 		MaxPlayers: maxPlayers,
 		Redirect:   redirect,
+		Motd:       motd,
 	}
 }
 
@@ -84,6 +87,10 @@ func (gameServer OnlineGameServer) GetMaxPlayers() int {
 
 func (gameServer OnlineGameServer) GetRedirect() string {
 	return gameServer.Redirect
+}
+
+func (gameServer OnlineGameServer) GetMotd() string {
+	return gameServer.Motd
 }
 
 type OfflineGameServer struct {

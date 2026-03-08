@@ -27,7 +27,7 @@ func TestGetServersHandler(t *testing.T) {
 	t.Run("Minecraft On, Valheim Off, Xonotic On, CS2 On", func(t *testing.T) {
 		gameDigClientMock := new(MockedGameDigClient)
 
-		gameDigClientMock.On("GetServerInfo", "minecraft", "disqt.com", "").Return([]byte(`{"maxplayers":420,"numplayers":0,"queryPort": 25565,"players":[]}`), nil)
+		gameDigClientMock.On("GetServerInfo", "minecraft", "disqt.com", "").Return([]byte(`{"name":"DISQT Minecraft","maxplayers":420,"numplayers":0,"queryPort": 25565,"players":[]}`), nil)
 		gameDigClientMock.On("GetServerInfo", "valheim", "disqt.com", "").Return([]byte(`{"error":"Failed all 1 attempts"}`), nil)
 		gameDigClientMock.On("GetServerInfo", "xonotic", "disqt.com", "26420").Return([]byte(`{"maxplayers":"420","numplayers":0,"queryPort": 26420,"players":[]}`), nil)
 		gameDigClientMock.On("GetServerInfo", "csgo", "disqt.com", "27015").Return([]byte(`{"maxplayers":10,"numplayers":13,"queryPort": 27015,"players":[{"name":"Player1"},{"name":"Player2"},{"name":"Player3"}],"bots":[{"name":"Bot1"},{"name":"Bot2"},{"name":"Bot3"},{"name":"Bot4"},{"name":"Bot5"},{"name":"Bot6"},{"name":"Bot7"},{"name":"Bot8"},{"name":"Bot9"},{"name":"Bot10"}]}`), nil)
@@ -61,7 +61,8 @@ func TestGetServersHandler(t *testing.T) {
 				"Running": true,
 				"Players": 0,
 				"MaxPlayers": 420,
-				"Redirect": "https://disqt.com/minecraft"
+				"Redirect": "https://disqt.com/minecraft",
+				"Motd": "DISQT Minecraft"
 			},
 			"Xonotic": {
 				"Url": "disqt.com:26420",
