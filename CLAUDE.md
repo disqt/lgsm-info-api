@@ -31,6 +31,12 @@ systemctl status lgsm-info-api.service
 sudo systemctl restart lgsm-info-api.service
 ```
 
+After restart, verify the new binary is actually running — `is-active` is not enough:
+```bash
+stat -c '%y' /home/dev/projects/lgsm-info-api/lgsm-info-api  # mtime should be recent
+sudo journalctl -u lgsm-info-api.service -n 5 --no-pager     # fresh startup logs
+```
+
 ## Architecture
 
 This is a Go/Gin HTTP API that queries game server status using the external `gamedig` CLI tool, plus a direct file read for Windrose (which gamedig does not support).
@@ -62,6 +68,6 @@ Windrose has no equivalent connect link (Unreal-based, not Steam Source) and no 
 
 ## Production Notes
 
-- **nginx caching:** The `/servers` endpoint is cached by nginx with a 10-minute TTL and `stale-while-revalidate`, so clients may receive slightly stale data while a fresh response is being fetched in the background.
-- **Sequential queries:** The API queries each game server sequentially via the `gamedig` CLI (see the `for` loop in `GetGameServers`), so total response time scales linearly with the number of servers in `serverLookups`.
+- **nginx caching:** The `/servers` endpoint is cached by nginx with a 10-minute TTL and `stale-while-revalidate`, so clients may receive slightly stale data while a fresh response is being fetched in the background. Cache files live at `/var/cache/nginx/`. Force-purge after deploy: `sudo find /var/cache/nginx -type f -delete && sudo systemctl reload nginx`.
+- **Concurrent queries:** `GetGameServers` fans out gamedig queries via goroutines + `sync.WaitGroup` (see `pkg/gameServers/gameServerService.go`). The Windrose file read in `cache.refresh()` happens sequentially after the WaitGroup joins — minor and not worth fanning out (local 500-byte file).
 - **Server lookup order:** Servers are queried in this order: minecraft, valheim, xonotic, csgo (CS2), windrose. The valheim entry still exists in the lookup list, but the Valheim server is no longer running -- it will always appear as offline in the response. The final response is sorted by `Running` (online first) then alphabetically, so this order doesn't affect display ordering.
