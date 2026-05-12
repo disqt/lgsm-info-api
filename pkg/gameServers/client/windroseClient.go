@@ -43,9 +43,8 @@ func NewWindroseClient(statusPath string, maxAge time.Duration) WindroseClient {
 	}
 }
 
-// GetStatus returns the parsed status when the file exists and is fresh.
-// A second return value of false means "treat as offline" — the caller does
-// not need to distinguish missing / stale / unparseable.
+// GetStatus collapses missing / stale / unreadable / malformed into a single
+// ok=false so the caller can treat all four the same way (server offline).
 func (c WindroseClient) GetStatus() (WindroseStatus, bool) {
 	info, err := c.Stat(c.StatusPath)
 	if err != nil {

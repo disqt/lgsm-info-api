@@ -22,7 +22,10 @@ var serverLookups = [...]ServerLookup{
 	{Id: "csgo", Host: "disqt.com", Port: "27015"},
 }
 
-var windroseLookup = ServerLookup{Id: "windrose", Host: "disqt.com", Port: "7777"}
+// Windrose has no joinable URL to display: not a Steam Source game, no
+// one-click join scheme, players use the in-game invite-code flow. So host
+// and port are passed as empty, which makes the response Url field empty too.
+const windroseID = "windrose"
 
 // GetWindroseServer reads the WindrosePlus dashboard's local status file
 // rather than going through gamedig — Windrose isn't a supported gamedig type,
@@ -30,12 +33,12 @@ var windroseLookup = ServerLookup{Id: "windrose", Host: "disqt.com", Port: "7777
 func GetWindroseServer(windroseClient client.WindroseClient) model.GameServer {
 	status, ok := windroseClient.GetStatus()
 	if !ok {
-		return model.NewOfflineGameServer(windroseLookup.Id)
+		return model.NewOfflineGameServer(windroseID)
 	}
 	return model.NewOnlineGameServer(
-		windroseLookup.Id,
-		windroseLookup.Host,
-		windroseLookup.Port,
+		windroseID,
+		"",
+		"",
 		status.Server.PlayerCount,
 		status.Server.MaxPlayers,
 		status.Server.Name,

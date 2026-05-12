@@ -41,11 +41,6 @@ func NewOnlineGameServer(name string, host string, port string, players int, max
 		redirect = "https://stats.xonotic.org/server/46827"
 	}
 
-	if strings.ToLower(name) == "windrose" {
-		host = ""
-		port = ""
-	}
-
 	if strings.ToLower(name) == "csgo" {
 		name = "Counter Strike 2"
 		redirect = "steam://rungameid/730//+connect " + host + ":27015"
