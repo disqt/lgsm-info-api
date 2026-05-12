@@ -5,8 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build and Run Commands
 
 ```bash
-# Build
-go build ./cmd/main.go
+# Build — must use -o; `go build ./cmd/main.go` produces ./main (file name),
+# not ./lgsm-info-api (module name), which the systemd unit won't pick up.
+go build -o lgsm-info-api ./cmd/main.go
 
 # Run locally (listens on :8080)
 go run ./cmd/main.go

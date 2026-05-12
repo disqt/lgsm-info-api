@@ -9,8 +9,10 @@ It's an HTTP API making use of [Gin](https://github.com/gin-gonic/gin).
 You can build the app by running:
 
 ```bash
-go build ./cmd/main.go
+go build -o lgsm-info-api ./cmd/main.go
 ```
+
+The `-o` flag is required: `go build ./cmd/main.go` produces a binary named `main` (after the file), not `lgsm-info-api` (after the module), and the systemd unit expects the latter.
 
 ## Running
 
