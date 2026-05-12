@@ -8,9 +8,38 @@ import (
 	"lgsm-info-api/pkg/gameServers/client"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 )
+
+type fakeFileInfo struct {
+	os.FileInfo
+	mtime time.Time
+}
+
+func (f fakeFileInfo) ModTime() time.Time { return f.mtime }
+
+func freshWindroseClient(body []byte) client.WindroseClient {
+	now := time.Unix(2_000_000_000, 0)
+	return client.WindroseClient{
+		StatusPath: "/fake",
+		MaxAge:     90 * time.Second,
+		Stat:       func(string) (os.FileInfo, error) { return fakeFileInfo{mtime: now}, nil },
+		Read:       func(string) ([]byte, error) { return body, nil },
+		Now:        func() time.Time { return now },
+	}
+}
+
+func offlineWindroseClient() client.WindroseClient {
+	return client.WindroseClient{
+		StatusPath: "/fake",
+		MaxAge:     90 * time.Second,
+		Stat:       func(string) (os.FileInfo, error) { return nil, os.ErrNotExist },
+		Read:       func(string) ([]byte, error) { return nil, nil },
+		Now:        time.Now,
+	}
+}
 
 type MockedGameDigClient struct {
 	mock.Mock
@@ -36,7 +65,9 @@ func TestGetServersHandler(t *testing.T) {
 			GetServerInfo: gameDigClientMock.GetServerInfo,
 		}
 
-		cache := gameServers.NewServerCache(gameDigClient, 1*time.Hour)
+		windroseClient := freshWindroseClient([]byte(`{"server":{"name":"disqt.com","player_count":2,"max_players":10}}`))
+
+		cache := gameServers.NewServerCache(gameDigClient, windroseClient, 1*time.Hour)
 		cache.Start()
 
 		r := setupRouter(cache)
@@ -64,6 +95,14 @@ func TestGetServersHandler(t *testing.T) {
 				"Redirect": "https://disqt.com/minecraft",
 				"Motd": "DISQT Minecraft"
 			},
+			"Windrose": {
+				"Url": "",
+				"Running": true,
+				"Players": 2,
+				"MaxPlayers": 10,
+				"Redirect": "",
+				"Motd": "disqt.com"
+			},
 			"Xonotic": {
 				"Url": "disqt.com:26420",
 				"Running": true,
@@ -77,5 +116,26 @@ func TestGetServersHandler(t *testing.T) {
 			}
 		}`
 		assert.JSONEq(t, expectedBody, w.Body.String())
+	})
+
+	t.Run("Windrose offline when status file missing", func(t *testing.T) {
+		gameDigClientMock := new(MockedGameDigClient)
+		gameDigClientMock.On("GetServerInfo", "minecraft", "disqt.com", "").Return([]byte(`{"error":"x"}`), nil)
+		gameDigClientMock.On("GetServerInfo", "valheim", "disqt.com", "").Return([]byte(`{"error":"x"}`), nil)
+		gameDigClientMock.On("GetServerInfo", "xonotic", "disqt.com", "26420").Return([]byte(`{"error":"x"}`), nil)
+		gameDigClientMock.On("GetServerInfo", "csgo", "disqt.com", "27015").Return([]byte(`{"error":"x"}`), nil)
+
+		gameDigClient := client.GameDigClient{GetServerInfo: gameDigClientMock.GetServerInfo}
+		cache := gameServers.NewServerCache(gameDigClient, offlineWindroseClient(), 1*time.Hour)
+		cache.Start()
+
+		r := setupRouter(cache)
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/servers", nil)
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), `"Windrose": {`)
+		assert.Contains(t, w.Body.String(), `"Running": false`)
 	})
 }
