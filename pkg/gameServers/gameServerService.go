@@ -22,6 +22,26 @@ var serverLookups = [...]ServerLookup{
 	{Id: "csgo", Host: "disqt.com", Port: "27015"},
 }
 
+var windroseLookup = ServerLookup{Id: "windrose", Host: "disqt.com", Port: "7777"}
+
+// GetWindroseServer reads the WindrosePlus dashboard's local status file
+// rather than going through gamedig — Windrose isn't a supported gamedig type,
+// and WP+ has no public query endpoint.
+func GetWindroseServer(windroseClient client.WindroseClient) model.GameServer {
+	status, ok := windroseClient.GetStatus()
+	if !ok {
+		return model.NewOfflineGameServer(windroseLookup.Id)
+	}
+	return model.NewOnlineGameServer(
+		windroseLookup.Id,
+		windroseLookup.Host,
+		windroseLookup.Port,
+		status.Server.PlayerCount,
+		status.Server.MaxPlayers,
+		status.Server.Name,
+	)
+}
+
 // GetGameServers queries all game servers concurrently via gamedig.
 // If a server query fails, it is reported as offline rather than crashing the API.
 func GetGameServers(gameDigClient client.GameDigClient) ([]model.GameServer, error) {

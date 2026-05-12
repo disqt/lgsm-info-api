@@ -9,16 +9,18 @@ import (
 )
 
 type ServerCache struct {
-	mu       sync.RWMutex
-	response model.OrderedServerMap
-	client   client.GameDigClient
-	interval time.Duration
+	mu             sync.RWMutex
+	response       model.OrderedServerMap
+	gameDigClient  client.GameDigClient
+	windroseClient client.WindroseClient
+	interval       time.Duration
 }
 
-func NewServerCache(gameDigClient client.GameDigClient, interval time.Duration) *ServerCache {
+func NewServerCache(gameDigClient client.GameDigClient, windroseClient client.WindroseClient, interval time.Duration) *ServerCache {
 	return &ServerCache{
-		client:   gameDigClient,
-		interval: interval,
+		gameDigClient:  gameDigClient,
+		windroseClient: windroseClient,
+		interval:       interval,
 	}
 }
 
@@ -29,11 +31,13 @@ func (c *ServerCache) Get() model.OrderedServerMap {
 }
 
 func (c *ServerCache) refresh() {
-	servers, err := GetGameServers(c.client)
+	servers, err := GetGameServers(c.gameDigClient)
 	if err != nil {
 		log.Printf("Cache refresh error: %s", err)
 		return
 	}
+
+	servers = append(servers, GetWindroseServer(c.windroseClient))
 
 	response, err := model.NewResponse(servers)
 	if err != nil {

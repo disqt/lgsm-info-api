@@ -26,9 +26,15 @@ func setupRouter(cache *gameServers.ServerCache) *gin.Engine {
 	return router
 }
 
+const (
+	windroseStatusPath = "/home/windrose/windrose/server-files/windrose_plus_data/server_status.json"
+	windroseMaxAge     = 90 * time.Second
+)
+
 func main() {
 	gameDigClient := client.NewGameDigClient()
-	cache := gameServers.NewServerCache(gameDigClient, 30*time.Second)
+	windroseClient := client.NewWindroseClient(windroseStatusPath, windroseMaxAge)
+	cache := gameServers.NewServerCache(gameDigClient, windroseClient, 30*time.Second)
 	cache.Start()
 
 	router := setupRouter(cache)
