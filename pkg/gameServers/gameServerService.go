@@ -17,7 +17,7 @@ type ServerLookup struct {
 
 var serverLookups = [...]ServerLookup{
 	{Id: "minecraft", Host: "disqt.com", Port: ""},
-	{Id: "valheim", Host: "disqt.com", Port: ""},
+	{Id: "valheim", Host: "disqt.com", Port: "2457"},
 	{Id: "xonotic", Host: "disqt.com", Port: "26420"},
 	{Id: "csgo", Host: "disqt.com", Port: "27015"},
 }
