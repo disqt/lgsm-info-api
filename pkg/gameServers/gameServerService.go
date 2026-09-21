@@ -45,6 +45,33 @@ func GetWindroseServer(windroseClient client.WindroseClient) model.GameServer {
 	)
 }
 
+// Palworld is queried through its own REST API rather than gamedig; see
+// client/palworldClient.go for why it is not A2S-queryable. Unlike Windrose
+// there is a joinable address to show, so host and port reach the response.
+const (
+	palworldID   = "palworld"
+	palworldHost = "disqt.com"
+	palworldPort = "8211"
+)
+
+// GetPalworldServer reads player counts from the Palworld REST API on
+// localhost. Any failure is reported as offline rather than failing the
+// refresh, matching GetWindroseServer.
+func GetPalworldServer(palworldClient client.PalworldClient) model.GameServer {
+	status, ok := palworldClient.GetStatus()
+	if !ok {
+		return model.NewOfflineGameServer(palworldID)
+	}
+	return model.NewOnlineGameServer(
+		palworldID,
+		palworldHost,
+		palworldPort,
+		status.Players,
+		status.MaxPlayers,
+		status.Name,
+	)
+}
+
 // GetGameServers queries all game servers concurrently via gamedig.
 // If a server query fails, it is reported as offline rather than crashing the API.
 func GetGameServers(gameDigClient client.GameDigClient) ([]model.GameServer, error) {

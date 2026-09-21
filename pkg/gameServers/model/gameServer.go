@@ -46,6 +46,12 @@ func NewOnlineGameServer(name string, host string, port string, players int, max
 		port = ""
 	}
 
+	// Palworld has no working steam:// connect scheme, so the redirect points at
+	// the landing page, which carries the join steps and the password policy.
+	if strings.ToLower(name) == "palworld" {
+		redirect = "https://disqt.com/palworld"
+	}
+
 	if strings.ToLower(name) == "csgo" {
 		name = "Counter Strike 2"
 		redirect = "steam://rungameid/730//+connect " + host + ":27015"

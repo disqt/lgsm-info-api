@@ -5,6 +5,7 @@ import (
 	"lgsm-info-api/pkg/gameServers"
 	"lgsm-info-api/pkg/gameServers/client"
 	"log"
+	"os"
 	"time"
 )
 
@@ -29,12 +30,33 @@ func setupRouter(cache *gameServers.ServerCache) *gin.Engine {
 const (
 	windroseStatusPath = "/home/windrose/windrose/server-files/windrose_plus_data/server_status.json"
 	windroseMaxAge     = 90 * time.Second
+
+	// Palworld's REST API binds localhost only; it is never exposed publicly.
+	palworldBaseURL = "http://127.0.0.1:8212"
+	palworldTimeout = 3 * time.Second
+
+	// The REST API fixes the basic-auth user as "admin"; only the password is
+	// configurable, and it comes from the systemd EnvironmentFile, not the repo.
+	palworldUser        = "admin"
+	palworldPasswordEnv = "PALWORLD_ADMIN_PASSWORD"
 )
+
+// newPalworldClientFromEnv builds the client from the environment, warning
+// once at startup if the password is missing rather than on every refresh.
+func newPalworldClientFromEnv() client.PalworldClient {
+	password := os.Getenv(palworldPasswordEnv)
+	if password == "" {
+		log.Printf("%s is not set: Palworld will always report offline", palworldPasswordEnv)
+	}
+
+	return client.NewPalworldClient(palworldBaseURL, palworldUser, password, palworldTimeout)
+}
 
 func main() {
 	gameDigClient := client.NewGameDigClient()
 	windroseClient := client.NewWindroseClient(windroseStatusPath, windroseMaxAge)
-	cache := gameServers.NewServerCache(gameDigClient, windroseClient, 30*time.Second)
+	palworldClient := newPalworldClientFromEnv()
+	cache := gameServers.NewServerCache(gameDigClient, windroseClient, palworldClient, 30*time.Second)
 	cache.Start()
 
 	router := setupRouter(cache)

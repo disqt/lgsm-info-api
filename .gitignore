@@ -1,1 +1,5 @@
 .idea/
+
+# Build output: the documented build command writes the binary in-tree
+# (go build -o lgsm-info-api ./cmd/main.go)
+/lgsm-info-api

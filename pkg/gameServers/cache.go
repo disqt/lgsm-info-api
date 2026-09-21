@@ -13,13 +13,15 @@ type ServerCache struct {
 	response       model.OrderedServerMap
 	gameDigClient  client.GameDigClient
 	windroseClient client.WindroseClient
+	palworldClient client.PalworldClient
 	interval       time.Duration
 }
 
-func NewServerCache(gameDigClient client.GameDigClient, windroseClient client.WindroseClient, interval time.Duration) *ServerCache {
+func NewServerCache(gameDigClient client.GameDigClient, windroseClient client.WindroseClient, palworldClient client.PalworldClient, interval time.Duration) *ServerCache {
 	return &ServerCache{
 		gameDigClient:  gameDigClient,
 		windroseClient: windroseClient,
+		palworldClient: palworldClient,
 		interval:       interval,
 	}
 }
@@ -30,7 +32,8 @@ func (c *ServerCache) Get() model.OrderedServerMap {
 	return c.response
 }
 
-func (c *ServerCache) refresh() {
+// Refresh performs one refresh synchronously.
+func (c *ServerCache) Refresh() {
 	servers, err := GetGameServers(c.gameDigClient)
 	if err != nil {
 		log.Printf("Cache refresh error: %s", err)
@@ -38,6 +41,7 @@ func (c *ServerCache) refresh() {
 	}
 
 	servers = append(servers, GetWindroseServer(c.windroseClient))
+	servers = append(servers, GetPalworldServer(c.palworldClient))
 
 	response, err := model.NewResponse(servers)
 	if err != nil {
@@ -52,13 +56,16 @@ func (c *ServerCache) refresh() {
 	log.Println("Server cache refreshed")
 }
 
+// Start refreshes in the background, including the first pass: the handler
+// already answers 503 until data lands, and a synchronous first refresh would
+// gate the listener on a Palworld endpoint that can be bound but silent.
 func (c *ServerCache) Start() {
-	c.refresh()
 	go func() {
+		c.Refresh()
 		ticker := time.NewTicker(c.interval)
 		defer ticker.Stop()
 		for range ticker.C {
-			c.refresh()
+			c.Refresh()
 		}
 	}()
 }
