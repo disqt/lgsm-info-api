@@ -1,14 +1,17 @@
 package main
 
 import (
+	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"io"
 	"lgsm-info-api/pkg/gameServers"
 	"lgsm-info-api/pkg/gameServers/client"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -41,6 +44,36 @@ func offlineWindroseClient() client.WindroseClient {
 	}
 }
 
+func onlinePalworldClient() client.PalworldClient {
+	body := map[string]string{
+		"/v1/api/metrics": `{"currentplayernum":1,"maxplayernum":8}`,
+		"/v1/api/info":    `{"servername":"disqt Palworld"}`,
+	}
+	return client.PalworldClient{
+		BaseURL:  "http://127.0.0.1:8212",
+		Username: "admin",
+		Password: "secret",
+		Do: func(req *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(body[req.URL.Path])),
+				Header:     make(http.Header),
+			}, nil
+		},
+	}
+}
+
+func offlinePalworldClient() client.PalworldClient {
+	return client.PalworldClient{
+		BaseURL:  "http://127.0.0.1:8212",
+		Username: "admin",
+		Password: "secret",
+		Do: func(*http.Request) (*http.Response, error) {
+			return nil, errors.New("connection refused")
+		},
+	}
+}
+
 type MockedGameDigClient struct {
 	mock.Mock
 }
@@ -53,7 +86,7 @@ func (m *MockedGameDigClient) GetServerInfo(game string, host string, port strin
 func TestGetServersHandler(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	t.Run("Minecraft On, Valheim Off, Xonotic On, CS2 On", func(t *testing.T) {
+	t.Run("Minecraft On, Valheim Off, Xonotic On, CS2 On, Palworld On", func(t *testing.T) {
 		gameDigClientMock := new(MockedGameDigClient)
 
 		gameDigClientMock.On("GetServerInfo", "minecraft", "disqt.com", "").Return([]byte(`{"name":"DISQT Minecraft","maxplayers":420,"numplayers":0,"queryPort": 25565,"players":[]}`), nil)
@@ -67,8 +100,8 @@ func TestGetServersHandler(t *testing.T) {
 
 		windroseClient := freshWindroseClient([]byte(`{"server":{"name":"disqt.com","player_count":2,"max_players":10}}`))
 
-		cache := gameServers.NewServerCache(gameDigClient, windroseClient, 1*time.Hour)
-		cache.Start()
+		cache := gameServers.NewServerCache(gameDigClient, windroseClient, onlinePalworldClient(), 1*time.Hour)
+		cache.Refresh()
 
 		r := setupRouter(cache)
 
@@ -110,6 +143,14 @@ func TestGetServersHandler(t *testing.T) {
 				"MaxPlayers": 420,
 				"Redirect": "https://stats.xonotic.org/server/46827"
 			},
+			"Palworld": {
+				"Url": "disqt.com:8211",
+				"Running": true,
+				"Players": 1,
+				"MaxPlayers": 8,
+				"Redirect": "https://disqt.com/palworld",
+				"Motd": "disqt Palworld"
+			},
 			"Valheim": {
 				"Url": "",
 				"Running": false
@@ -118,7 +159,7 @@ func TestGetServersHandler(t *testing.T) {
 		assert.JSONEq(t, expectedBody, w.Body.String())
 	})
 
-	t.Run("Windrose offline when status file missing", func(t *testing.T) {
+	t.Run("Windrose and Palworld offline when their sources are unreachable", func(t *testing.T) {
 		gameDigClientMock := new(MockedGameDigClient)
 		gameDigClientMock.On("GetServerInfo", "minecraft", "disqt.com", "").Return([]byte(`{"error":"x"}`), nil)
 		gameDigClientMock.On("GetServerInfo", "valheim", "disqt.com", "2457").Return([]byte(`{"error":"x"}`), nil)
@@ -126,8 +167,8 @@ func TestGetServersHandler(t *testing.T) {
 		gameDigClientMock.On("GetServerInfo", "csgo", "disqt.com", "27015").Return([]byte(`{"error":"x"}`), nil)
 
 		gameDigClient := client.GameDigClient{GetServerInfo: gameDigClientMock.GetServerInfo}
-		cache := gameServers.NewServerCache(gameDigClient, offlineWindroseClient(), 1*time.Hour)
-		cache.Start()
+		cache := gameServers.NewServerCache(gameDigClient, offlineWindroseClient(), offlinePalworldClient(), 1*time.Hour)
+		cache.Refresh()
 
 		r := setupRouter(cache)
 		w := httptest.NewRecorder()
@@ -136,6 +177,7 @@ func TestGetServersHandler(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Contains(t, w.Body.String(), `"Windrose": {`)
+		assert.Contains(t, w.Body.String(), `"Palworld": {`)
 		assert.Contains(t, w.Body.String(), `"Running": false`)
 	})
 }
